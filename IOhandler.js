@@ -16,7 +16,7 @@ const { createReadStream, createWriteStream } = require("fs");
 const path = require("path");
 const { pipeline } = require("stream/promises");
 
-const { greyScaleFilter } = require("./filters");
+const { grayScaleFilter } = require("./filters");
 
 const PNG = require("pngjs").PNG;
 const yauzl = require("yauzl-promise");
@@ -84,26 +84,30 @@ const readDir = async (dir) => {
  * @return {promise}
  */
 
-const grayScale = async (pathIn, pathOut) => {
+const filterImage = async (pathIn, pathOut, filter) => {
     // do I need this try-catch pair?
     try {
-        await fs.mkdir("grayscaled", { recursive: true });
+        await fs.mkdir(`${filter}`, { recursive: true });
         await pipeline(
             createReadStream(pathIn),
             new PNG({ filterType: 4 }).on("parsed", function () {
                 for (var y = 0; y < this.height; y++) {
                     for (var x = 0; x < this.width; x++) {
                         var idx = (this.width * y + x) << 2;
-
-                        [
-                            this.data[idx],
-                            this.data[idx + 1],
-                            this.data[idx + 2],
-                        ] = greyScaleFilter(
-                            this.data[idx],
-                            this.data[idx + 1],
-                            this.data[idx + 2]
-                        );
+                        
+                        if (filter == "grayscale") {
+                            [
+                                this.data[idx],
+                                this.data[idx + 1],
+                                this.data[idx + 2],
+                            ] = grayScaleFilter(
+                                this.data[idx],
+                                this.data[idx + 1],
+                                this.data[idx + 2]
+                            );
+                        } else if (filter == "placeholder") {
+                            
+                        }
                     }
                 }
                 pipeline(this.pack(), createWriteStream(pathOut));
@@ -117,5 +121,5 @@ const grayScale = async (pathIn, pathOut) => {
 module.exports = {
     unzip,
     readDir,
-    grayScale,
+    filterImage,
 };

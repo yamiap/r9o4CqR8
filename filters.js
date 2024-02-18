@@ -11,6 +11,6 @@
 
 "use strict";
 
-const greyScaleFilter = (r, g, b) => new Array(3).fill((r + g + b) / 3);
+const grayScaleFilter = (r, g, b) => new Array(3).fill((r + g + b) / 3);
 
-module.exports = { greyScaleFilter };
+module.exports = { grayScaleFilter };

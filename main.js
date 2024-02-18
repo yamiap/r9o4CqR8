@@ -13,13 +13,16 @@
 
 const path = require("path");
 
-const { unzip, readDir, grayScale } = require("./IOhandler");
+const { unzip, readDir, filterImage } = require("./IOhandler");
+const { question } = require("./question");
 
 const zipFilePath = path.join(__dirname, "myfile.zip");
 const pathUnzipped = path.join(__dirname, "unzipped");
-const pathProcessed = path.join(__dirname, "grayscaled");
 
 const main = async () => {
+    const filter = await question();
+    console.log(filter);
+    const pathProcessed = path.join(__dirname, `${filter}`);
     try {
         // do I need to assign these to variables?
         await unzip(zipFilePath, pathUnzipped);
@@ -31,7 +34,7 @@ const main = async () => {
         await images.forEach((image) => {
             let pathIn = path.join(pathUnzipped, image);
             let pathOut = path.join(pathProcessed, image);
-            grayScale(pathIn, pathOut);
+            filterImage(pathIn, pathOut, filter);
         });
         // console.log("All files processed");
     } catch (err) {

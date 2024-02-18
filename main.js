@@ -18,10 +18,19 @@ const pathUnzipped = path.join(__dirname, "unzipped");
 const pathProcessed = path.join(__dirname, "grayscaled");
 
 const main = async () => {
-    // vvvvvvvvv const smt = for next line? vvvvvv
-    await unzip(zipFilePath, pathUnzipped);
-    // await unzip(zipFilePath, pathUnzipped);
-    // const img = await readDir();
-}
+    try {
+        // vvvvvvvvv const smt = for next line? vvvvvv
+        await unzip(zipFilePath, pathUnzipped);
+        const images = await readDir(pathUnzipped);
+        console.log(images);
+        images.forEach((image) => {
+            let pathIn = path.join(pathUnzipped, image);
+            let pathOut = path.join(pathProcessed, image);
+            grayScale(pathIn, pathOut);
+        });
+    } catch (err) {
+        console.error(err.message);
+    }
+};
 
 main();

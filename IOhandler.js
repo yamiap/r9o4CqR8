@@ -27,21 +27,25 @@ const yauzl = require("yauzl-promise");
  */
 
 const unzip = async (pathIn, pathOut) => {
-    const zip = await yauzl.open(pathIn);
     try {
-        for await (const entry of zip) {
-            if (!entry.filename.includes("/")) {
-                const readStream = await entry.openReadStream();
-                const writeStream = createWriteStream(
-                    path.join(pathOut, entry.filename)
-                );
-                await pipeline(readStream, writeStream);
+        const zip = await yauzl.open(pathIn);
+        try {
+            for await (const entry of zip) {
+                if (!entry.filename.includes("/")) {
+                    const readStream = await entry.openReadStream();
+                    const writeStream = createWriteStream(
+                        path.join(pathOut, entry.filename)
+                    );
+                    await pipeline(readStream, writeStream);
+                }
             }
+        } finally {
+            await zip.close();
         }
-    } finally {
-        await zip.close();
+    } catch (err) {
+        console.log(err.code);
     }
-}
+};
 
 /**
  * Description: read all the png files from given directory and return Promise containing array of each png file path
@@ -49,8 +53,14 @@ const unzip = async (pathIn, pathOut) => {
  * @param {string} path
  * @return {promise}
  */
-const readDir = (dir) => {
 
+const readDir = async (path) => {
+    try {
+        const files = fs.readdir(path);
+        return files;
+    } catch (err) {
+        console.error(err.message);
+    }
 };
 
 /**
@@ -61,8 +71,28 @@ const readDir = (dir) => {
  * @param {string} pathProcessed
  * @return {promise}
  */
+// make this pipieline
 const grayScale = (pathIn, pathOut) => {
+    createReadStream(pathIn)
+        .pipe(
+            new PNG({
+                filterType: 4,
+            })
+        )
+        .on("parsed", function () {
+            for (var y = 0; y < this.height; y++) {
+                for (var x = 0; x < this.width; x++) {
+                    var idx = (this.width * y + x) << 2;
 
+                    // invert color
+                    this.data[idx] = 255 - this.data[idx];
+                    this.data[idx + 1] = 255 - this.data[idx + 1];
+                    this.data[idx + 2] = 255 - this.data[idx + 2];
+                }
+            }
+
+            this.pack().pipe(createWriteStream(pathOut));
+        });
 };
 
 module.exports = {

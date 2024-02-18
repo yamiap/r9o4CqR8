@@ -16,7 +16,7 @@ const { createReadStream, createWriteStream } = require("fs");
 const path = require("path");
 const { pipeline } = require("stream/promises");
 
-const { grayScaleFilter } = require("./filters");
+const { grayScaleFilter, sepiaFilter } = require("./filters");
 
 const PNG = require("pngjs").PNG;
 const yauzl = require("yauzl-promise");
@@ -105,8 +105,16 @@ const filterImage = async (pathIn, pathOut, filter) => {
                                 this.data[idx + 1],
                                 this.data[idx + 2]
                             );
-                        } else if (filter == "placeholder") {
-                            
+                        } else if (filter == "sepia") {
+                            [
+                                this.data[idx],
+                                this.data[idx + 1],
+                                this.data[idx + 2]
+                            ] = sepiaFilter(
+                                this.data[idx],
+                                this.data[idx + 1],
+                                this.data[idx + 2]
+                            );
                         }
                     }
                 }

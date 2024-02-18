@@ -2,10 +2,10 @@ const readline = require("readline-sync");
 
 const question = async () => {
     console.log(
-        "Available filters: \ngrayscale\nplaceholder\n"
+        "Available filters: \ngrayscale\nsepia\n"
     );
     let filter;
-    while (filter != "grayscale" && filter != "placeholder") {
+    while (filter != "grayscale" && filter != "sepia") {
         filter = readline.question(
             "Enter the filter you would like to apply: "
         );

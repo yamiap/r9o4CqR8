@@ -13,10 +13,10 @@
 
 const fs = require("fs/promises");
 const { createReadStream, createWriteStream } = require("fs");
-const { extname } = require("path");
+const path = require("path");
 const { pipeline } = require("stream/promises");
 
-const { greyScaleFilter } = require("./filters.js");
+const { greyScaleFilter } = require("./filters");
 
 const PNG = require("pngjs").PNG;
 const yauzl = require("yauzl-promise");
@@ -30,7 +30,9 @@ const yauzl = require("yauzl-promise");
  */
 
 const unzip = async (pathIn, pathOut) => {
+    // do I need this (outer) try-catch pair?
     try {
+        await fs.mkdir(pathOut, { recursive: true });
         const zip = await yauzl.open(pathIn);
         try {
             for await (const entry of zip) {
@@ -45,29 +47,31 @@ const unzip = async (pathIn, pathOut) => {
                     await pipeline(readStream, writeStream);
                 }
             }
+            // do I need this catch block?
         } catch (err) {
-            console.log(err.code);
+            console.error(err);
         } finally {
             await zip.close();
         }
     } catch (err) {
-        console.log(err.code);
+        console.error(err);
     }
 };
 
 /**
  * Description: read all the png files from given directory and return Promise containing array of each png file path
  *
- * @param {string} path
+ * @param {string} dir
  * @return {promise}
  */
 
-const readDir = async (path) => {
+const readDir = async (dir) => {
+    // do I need this try-catch pair?
     try {
-        let files = await fs.readdir(path);
-        return files.filter((file) => extname(file) == ".png");
+        let files = await fs.readdir(dir);
+        return files.filter((file) => path.extname(file) == ".png");
     } catch (err) {
-        console.error(err.message);
+        console.error(err);
     }
 };
 
@@ -80,25 +84,34 @@ const readDir = async (path) => {
  * @return {promise}
  */
 
-const grayScale = (pathIn, pathOut) => {
-    pipeline(
-        createReadStream(pathIn),
-        new PNG({ filterType: 4 }).on("parsed", function () {
-            for (var y = 0; y < this.height; y++) {
-                for (var x = 0; x < this.width; x++) {
-                    var idx = (this.width * y + x) << 2;
+const grayScale = async (pathIn, pathOut) => {
+    // do I need this try-catch pair?
+    try {
+        await fs.mkdir("grayscaled", { recursive: true });
+        await pipeline(
+            createReadStream(pathIn),
+            new PNG({ filterType: 4 }).on("parsed", function () {
+                for (var y = 0; y < this.height; y++) {
+                    for (var x = 0; x < this.width; x++) {
+                        var idx = (this.width * y + x) << 2;
 
-                    [this.data[idx], this.data[idx + 1], this.data[idx + 2]] =
-                        greyScaleFilter(
+                        [
+                            this.data[idx],
+                            this.data[idx + 1],
+                            this.data[idx + 2],
+                        ] = greyScaleFilter(
                             this.data[idx],
                             this.data[idx + 1],
                             this.data[idx + 2]
                         );
+                    }
                 }
-            }
-            pipeline(this.pack(), createWriteStream(pathOut));
-        })
-    );
+                pipeline(this.pack(), createWriteStream(pathOut));
+            })
+        );
+    } catch (err) {
+        console.error(err);
+    }
 };
 
 module.exports = {

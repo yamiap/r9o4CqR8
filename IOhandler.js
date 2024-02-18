@@ -34,7 +34,10 @@ const unzip = async (pathIn, pathOut) => {
         const zip = await yauzl.open(pathIn);
         try {
             for await (const entry of zip) {
-                if (!entry.filename.includes("/")) {
+                if (
+                    !entry.filename.includes("/") &&
+                    !entry.filename.includes("\\")
+                ) {
                     const readStream = await entry.openReadStream();
                     const writeStream = createWriteStream(
                         path.join(pathOut, entry.filename)
@@ -62,7 +65,7 @@ const unzip = async (pathIn, pathOut) => {
 const readDir = async (path) => {
     try {
         let files = await fs.readdir(path);
-        return files.filter(file => extname(file) == ".png");
+        return files.filter((file) => extname(file) == ".png");
     } catch (err) {
         console.error(err.message);
     }

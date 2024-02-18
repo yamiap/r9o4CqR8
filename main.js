@@ -22,7 +22,7 @@ const main = async () => {
         // vvvvvvvvv const smt = for next line? vvvvvv
         await unzip(zipFilePath, pathUnzipped);
         const images = await readDir(pathUnzipped);
-        console.log(images);
+        // console.log(images);
         images.forEach((image) => {
             let pathIn = path.join(pathUnzipped, image);
             let pathOut = path.join(pathProcessed, image);

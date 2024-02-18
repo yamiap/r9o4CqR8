@@ -13,8 +13,11 @@
 
 const fs = require("fs/promises");
 const { createReadStream, createWriteStream } = require("fs");
-const path = require("path");
+const { extname } = require("path");
 const { pipeline } = require("stream/promises");
+
+const { greyScaleFilter } = require("./filters.js");
+
 const PNG = require("pngjs").PNG;
 const yauzl = require("yauzl-promise");
 
@@ -39,6 +42,8 @@ const unzip = async (pathIn, pathOut) => {
                     await pipeline(readStream, writeStream);
                 }
             }
+        } catch (err) {
+            console.log(err.code);
         } finally {
             await zip.close();
         }
@@ -56,8 +61,8 @@ const unzip = async (pathIn, pathOut) => {
 
 const readDir = async (path) => {
     try {
-        const files = fs.readdir(path);
-        return files;
+        let files = await fs.readdir(path);
+        return files.filter(file => extname(file) == ".png");
     } catch (err) {
         console.error(err.message);
     }
@@ -71,28 +76,26 @@ const readDir = async (path) => {
  * @param {string} pathProcessed
  * @return {promise}
  */
-// make this pipieline
+
 const grayScale = (pathIn, pathOut) => {
-    createReadStream(pathIn)
-        .pipe(
-            new PNG({
-                filterType: 4,
-            })
-        )
-        .on("parsed", function () {
+    pipeline(
+        createReadStream(pathIn),
+        new PNG({ filterType: 4 }).on("parsed", function () {
             for (var y = 0; y < this.height; y++) {
                 for (var x = 0; x < this.width; x++) {
                     var idx = (this.width * y + x) << 2;
 
-                    // invert color
-                    this.data[idx] = 255 - this.data[idx];
-                    this.data[idx + 1] = 255 - this.data[idx + 1];
-                    this.data[idx + 2] = 255 - this.data[idx + 2];
+                    [this.data[idx], this.data[idx + 1], this.data[idx + 2]] =
+                        greyScaleFilter(
+                            this.data[idx],
+                            this.data[idx + 1],
+                            this.data[idx + 2]
+                        );
                 }
             }
-
-            this.pack().pipe(createWriteStream(pathOut));
-        });
+            pipeline(this.pack(), createWriteStream(pathOut));
+        })
+    );
 };
 
 module.exports = {

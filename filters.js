@@ -14,9 +14,9 @@
 const grayScaleFilter = (r, g, b) => new Array(3).fill((r + g + b) / 3);
 
 const sepiaFilter = (r, g, b) => {
-    let newR = (0.393 * r + 0.769 * g + 0.189 * b) / 1.4;
-    let newB = (0.272 * r + 0.534 * g + 0.131 * b) / 1.4;
-    let newG = (0.349 * r + 0.686 * g + 0.168 * b) / 1.4;
+    const newR = (0.393 * r + 0.769 * g + 0.189 * b) / 1.4;
+    const newB = (0.272 * r + 0.534 * g + 0.131 * b) / 1.4;
+    const newG = (0.349 * r + 0.686 * g + 0.168 * b) / 1.4;
     return [newR, newG, newB];
 };
 

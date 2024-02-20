@@ -11,13 +11,13 @@
 
 "use strict";
 
-const fs = require("fs/promises");
-const { createWriteStream } = require("fs");
-const path = require("path");
-const { pipeline } = require("stream/promises");
-const { Worker } = require("worker_threads");
-const readline = require("readline-sync");
-const yauzl = require("yauzl-promise");
+const fs = require("fs/promises"),
+    { createWriteStream } = require("fs"),
+    path = require("path"),
+    { pipeline } = require("stream/promises"),
+    { Worker } = require("worker_threads"),
+    readline = require("readline-sync"),
+    yauzl = require("yauzl-promise");
 
 /**
  * Description: prompt the user to select a filter
@@ -139,10 +139,14 @@ const processImages = async (
     await fs.mkdir(pathProcessed, { recursive: true });
     const chunks = await chunkify(images, concurrentWorkers);
 
-    chunks.forEach((data) => {
+    chunks.forEach((data, i) => {
         let filterParameters = [data, pathUnzipped, pathProcessed, filter];
         const worker = new Worker("./worker.js");
         worker.postMessage(filterParameters);
+        worker.on("message", () => {
+            worker.terminate();
+            console.log(`Worker ${i} message received`);
+        });
     });
 };
 

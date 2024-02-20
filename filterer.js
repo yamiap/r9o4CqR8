@@ -11,6 +11,15 @@
 
 "use strict";
 
+const imageFilter = (r, g, b, filter) => {
+    // split these up
+    if (filter == "grayscale") {
+        return grayScaleFilter(r, g, b);
+    } else if (filter == "sepia") {
+        return sepiaFilter(r, g, b);
+    }
+};
+
 const grayScaleFilter = (r, g, b) => new Array(3).fill((r + g + b) / 3);
 
 const sepiaFilter = (r, g, b) => {
@@ -20,4 +29,4 @@ const sepiaFilter = (r, g, b) => {
     return [newR, newG, newB];
 };
 
-module.exports = { grayScaleFilter, sepiaFilter };
+module.exports = { imageFilter };

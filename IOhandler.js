@@ -15,12 +15,16 @@ const fs = require("fs/promises");
 const { createReadStream, createWriteStream } = require("fs");
 const path = require("path");
 const { pipeline } = require("stream/promises");
-
-const { grayScaleFilter, sepiaFilter } = require("./filters");
-
+const { imageFilter } = require("./filterer");
 const PNG = require("pngjs").PNG;
 const readline = require("readline-sync");
 const yauzl = require("yauzl-promise");
+
+/**
+ * Description: prompt the user to select a filter
+ *
+ * @return {promise}
+ */
 
 const filterPrompt = async () => {
     console.log("Available filters: \ngrayscale\nsepia\n");
@@ -35,6 +39,7 @@ const filterPrompt = async () => {
         );
     }
     if (filter == "greyscale") filter = "grayscale";
+    console.log(`You chose the ${filter} filter`);
     return filter;
 };
 
@@ -48,30 +53,27 @@ const filterPrompt = async () => {
 
 const unzip = async (pathIn, pathOut) => {
     // do I need this (outer) try-catch pair?
+    await fs.mkdir(pathOut, { recursive: true });
+    const zip = await yauzl.open(pathIn);
     try {
-        await fs.mkdir(pathOut, { recursive: true });
-        const zip = await yauzl.open(pathIn);
-        try {
-            for await (const entry of zip) {
-                if (
-                    !entry.filename.includes("/") &&
-                    !entry.filename.includes("\\")
-                ) {
-                    const readStream = await entry.openReadStream();
-                    const writeStream = createWriteStream(
-                        path.join(pathOut, entry.filename)
-                    );
-                    await pipeline(readStream, writeStream);
-                }
+        for await (const entry of zip) {
+            if (
+                !entry.filename.includes("/") &&
+                !entry.filename.includes("\\")
+            ) {
+                const readStream = await entry.openReadStream();
+                const writeStream = createWriteStream(
+                    path.join(pathOut, entry.filename)
+                );
+                await pipeline(readStream, writeStream);
             }
-            // do I need this catch block?
-        } catch (err) {
-            console.error(err);
-        } finally {
-            await zip.close();
         }
-    } catch (err) {
-        console.error(err);
+        // do I need this catch block?
+        // } catch (err) {
+        //     console.error(err);
+    } finally {
+        await zip.close();
+        console.log("Extraction operation complete");
     }
 };
 
@@ -84,73 +86,66 @@ const unzip = async (pathIn, pathOut) => {
 
 const readDir = async (dir) => {
     // do I need this try-catch pair?
-    try {
-        let files = await fs.readdir(dir);
-        return files.filter((file) => path.extname(file) == ".png");
-    } catch (err) {
-        console.error(err);
-    }
+    const files = await fs.readdir(dir);
+    const pngFiles = files.filter((file) => path.extname(file) == ".png");
+    console.log("Directory reading complete");
+    return pngFiles;
+};
+
+/**
+ * Description: Loop through array of png file paths,
+ * call filterImage for each image
+ *
+ * @param {array} images
+ * @param {string} pathProcessed
+ * @param {string} filter
+ * @return {promise}
+ */
+
+const processImages = async (images, pathUnzipped, pathProcessed, filter) => {
+    images.forEach((image) => {
+        let pathIn = path.join(pathUnzipped, image);
+        let pathOut = path.join(pathProcessed, image);
+        filterImage(pathIn, pathOut, filter);
+    });
+    // console.log("All files processed"));
 };
 
 /**
  * Description: Read in png file by given pathIn,
- * convert to grayscale and write to given pathOut
+ * apply filter specified and write to given pathOut
  *
- * @param {string} filePath
- * @param {string} pathProcessed
+ * @param {string} pathIn
+ * @param {string} pathOut
+ * @param {string} filter
  * @return {promise}
  */
 
 const filterImage = async (pathIn, pathOut, filter) => {
-    let pathProcessed = path.join(__dirname, "unfiltered");
+    await pipeline(
+        createReadStream(pathIn),
+        new PNG({ filterType: 4 }).on("parsed", function () {
+            for (var y = 0; y < this.height; y++) {
+                for (var x = 0; x < this.width; x++) {
+                    var idx = (this.width * y + x) << 2;
 
-    if (filter == "grayscale") pathProcessed = "grayscaled";
-    if (filter == "sepia") pathProcessed = "sepia_filtered";
-
-    // do I need this try-catch pair?
-    try {
-        await fs.mkdir(pathProcessed, { recursive: true });
-        await pipeline(
-            createReadStream(pathIn),
-            new PNG({ filterType: 4 }).on("parsed", function () {
-                for (var y = 0; y < this.height; y++) {
-                    for (var x = 0; x < this.width; x++) {
-                        var idx = (this.width * y + x) << 2;
-
-                        if (filter == "grayscale") {
-                            [
-                                this.data[idx],
-                                this.data[idx + 1],
-                                this.data[idx + 2],
-                            ] = grayScaleFilter(
-                                this.data[idx],
-                                this.data[idx + 1],
-                                this.data[idx + 2]
-                            );
-                        } else if (filter == "sepia") {
-                            [
-                                this.data[idx],
-                                this.data[idx + 1],
-                                this.data[idx + 2],
-                            ] = sepiaFilter(
-                                this.data[idx],
-                                this.data[idx + 1],
-                                this.data[idx + 2]
-                            );
-                        }
-                    }
+                    [this.data[idx], this.data[idx + 1], this.data[idx + 2]] =
+                        imageFilter(
+                            this.data[idx],
+                            this.data[idx + 1],
+                            this.data[idx + 2],
+                            filter
+                        );
                 }
-                pipeline(this.pack(), createWriteStream(pathOut));
-            })
-        );
-    } catch (err) {
-        console.error(err);
-    }
+            }
+            pipeline(this.pack(), createWriteStream(pathOut));
+        })
+    );
 };
 
 module.exports = {
     filterPrompt,
     unzip,
     readDir,
-    filterImage,
+    processImages,
 };

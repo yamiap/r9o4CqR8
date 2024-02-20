@@ -11,34 +11,27 @@
 
 "use strict";
 
+const fs = require("fs/promises");
 const path = require("path");
-
-const { filterPrompt, unzip, readDir, filterImage } = require("./IOhandler");
-
+const { filterPrompt, unzip, readDir, processImages } = require("./IOhandler");
 const zipFilePath = path.join(__dirname, "myfile.zip");
 const pathUnzipped = path.join(__dirname, "unzipped");
+let pathProcessed;
 
 const main = async () => {
-    const filter = await filterPrompt();
-    let pathProcessed = path.join(__dirname, "unfiltered");
-
-    if (filter == "grayscale") pathProcessed = "grayscaled";
-    if (filter == "sepia") pathProcessed = "sepia_filtered";
-
     try {
-        // do I need to assign these to variables?
+        const filter = await filterPrompt();
+
+        if (filter == "grayscale") {
+            pathProcessed = path.join(__dirname, "grayscaled");
+        } else if (filter == "sepia") {
+            pathProcessed = path.join(__dirname, "sepia_filtered");
+        }
+        
+        await fs.mkdir(pathProcessed, { recursive: true });
         await unzip(zipFilePath, pathUnzipped);
-        console.log("Extraction operation complete");
         const images = await readDir(pathUnzipped);
-        console.log("Directory reading complete");
-        // should this loop be in IOhandler?
-        // do I need await here?
-        await images.forEach((image) => {
-            let pathIn = path.join(pathUnzipped, image);
-            let pathOut = path.join(pathProcessed, image);
-            filterImage(pathIn, pathOut, filter);
-        });
-        // console.log("All files processed");
+        await processImages(images, pathUnzipped, pathProcessed, filter);
     } catch (err) {
         console.error(err);
     }

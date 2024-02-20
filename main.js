@@ -13,14 +13,13 @@
 
 const path = require("path");
 
-const { unzip, readDir, filterImage } = require("./IOhandler");
-const { question } = require("./question");
+const { filterPrompt, unzip, readDir, filterImage } = require("./IOhandler");
 
 const zipFilePath = path.join(__dirname, "myfile.zip");
 const pathUnzipped = path.join(__dirname, "unzipped");
 
 const main = async () => {
-    const filter = await question();
+    const filter = await filterPrompt();
     let pathProcessed = path.join(__dirname, "unfiltered");
 
     if (filter == "grayscale") pathProcessed = "grayscaled";

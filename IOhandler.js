@@ -19,7 +19,24 @@ const { pipeline } = require("stream/promises");
 const { grayScaleFilter, sepiaFilter } = require("./filters");
 
 const PNG = require("pngjs").PNG;
+const readline = require("readline-sync");
 const yauzl = require("yauzl-promise");
+
+const filterPrompt = async () => {
+    console.log("Available filters: \ngrayscale\nsepia\n");
+    let filter;
+    while (
+        filter != "grayscale" &&
+        filter != "greyscale" &&
+        filter != "sepia"
+    ) {
+        filter = readline.question(
+            "Enter the filter you would like to apply: "
+        );
+    }
+    if (filter == "greyscale") filter = "grayscale";
+    return filter;
+};
 
 /**
  * Description: decompress file from given pathIn, write to given pathOut
@@ -132,6 +149,7 @@ const filterImage = async (pathIn, pathOut, filter) => {
 };
 
 module.exports = {
+    filterPrompt,
     unzip,
     readDir,
     filterImage,

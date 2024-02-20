@@ -15,6 +15,8 @@ const fs = require("fs/promises");
 const { createReadStream, createWriteStream } = require("fs");
 const path = require("path");
 const { pipeline } = require("stream/promises");
+const { Worker } = require("worker_threads");
+
 const { imageFilter } = require("./filterer");
 const PNG = require("pngjs").PNG;
 const readline = require("readline-sync");
@@ -87,7 +89,9 @@ const unzip = async (pathIn, pathOut) => {
 const readDir = async (dir) => {
     // do I need a try-catch pair?
     const files = await fs.readdir(dir);
-    const pngFiles = files.filter((file) => path.extname(file).toLowerCase() == ".png");
+    const pngFiles = files.filter(
+        (file) => path.extname(file).toLowerCase() == ".png"
+    );
     console.log("Directory reading complete");
     return pngFiles;
 };
@@ -143,9 +147,32 @@ const filterImage = async (pathIn, pathOut, filter) => {
     );
 };
 
+const chunkify = async (array, n) => {
+    let chunks = [];
+    for (let i = n; i > 0; i--) {
+        chunks.push(array.splice(0, Math.ceil(array.length / i)));
+    }
+    return chunks;
+};
+
+
+// rename this
+const run = async (jobs, pathUnzipped, pathProcessed, filter, concurrentWorkers) => {
+    const chunks = await chunkify(jobs, concurrentWorkers);
+
+    chunks.forEach((data, i) => {
+        const worker = new Worker("./worker.js");
+        worker.postMessage([data, pathUnzipped, pathProcessed, filter]);
+        worker.on("message", () => {
+            console.log(`Worker ${i} completed`);
+        });
+    });
+};
+
 module.exports = {
     filterPrompt,
     unzip,
     readDir,
     processImages,
+    run,
 };

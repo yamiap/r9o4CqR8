@@ -1,6 +1,6 @@
 /*
  * Project: Milestone 1
- * File Name: filters.js
+ * File Name: filterer.js
  * Description: Collection of functions for image colour filtering
  *
  * Created Date: 2024-02-13

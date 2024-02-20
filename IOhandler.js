@@ -85,9 +85,9 @@ const unzip = async (pathIn, pathOut) => {
  */
 
 const readDir = async (dir) => {
-    // do I need this try-catch pair?
+    // do I need a try-catch pair?
     const files = await fs.readdir(dir);
-    const pngFiles = files.filter((file) => path.extname(file) == ".png");
+    const pngFiles = files.filter((file) => path.extname(file).toLowerCase() == ".png");
     console.log("Directory reading complete");
     return pngFiles;
 };

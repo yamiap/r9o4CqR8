@@ -27,7 +27,7 @@ const main = async () => {
         } else if (filter == "sepia") {
             pathProcessed = path.join(__dirname, "sepia_filtered");
         }
-        
+
         await fs.mkdir(pathProcessed, { recursive: true });
         await unzip(zipFilePath, pathUnzipped);
         const images = await readDir(pathUnzipped);

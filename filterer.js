@@ -12,11 +12,12 @@
 "use strict";
 
 const imageFilter = (r, g, b, filter) => {
-    // split these up
     if (filter == "grayscale") {
         return grayScaleFilter(r, g, b);
     } else if (filter == "sepia") {
         return sepiaFilter(r, g, b);
+    } else if (filter == "blue filter") {
+        return blueFilter(r, g, b);
     }
 };
 
@@ -27,6 +28,11 @@ const sepiaFilter = (r, g, b) => {
     const newB = (0.272 * r + 0.534 * g + 0.131 * b) / 1.4;
     const newG = (0.349 * r + 0.686 * g + 0.168 * b) / 1.4;
     return [newR, newG, newB];
+};
+
+const blueFilter = (r, g, b) => {
+    if (b < 96) return [r, g, 0];
+    else return [r, g, b * 0.7];
 };
 
 module.exports = { imageFilter };

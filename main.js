@@ -11,31 +11,18 @@
 
 "use strict";
 
-const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
-const { filterPrompt, unzip, readDir, processImages, run } = require("./IOhandler");
+const { filterPrompt, unzip, readDir, processImages } = require("./IOhandler");
 const zipFilePath = path.join(__dirname, "myfile.zip");
 const pathUnzipped = path.join(__dirname, "unzipped");
-let pathProcessed;
 
 const main = async () => {
     try {
         const filter = await filterPrompt();
-
-        if (filter == "grayscale") {
-            pathProcessed = path.join(__dirname, "grayscaled");
-        } else if (filter == "sepia") {
-            pathProcessed = path.join(__dirname, "sepia_filtered");
-        }
-
-        await fs.mkdir(pathProcessed, { recursive: true });
         await unzip(zipFilePath, pathUnzipped);
         const images = await readDir(pathUnzipped);
-        await run(images, pathUnzipped, pathProcessed, filter,
-            os.cpus().length / 2
-        );
-        // await processImages(images, pathUnzipped, pathProcessed, filter);
+        await processImages(images, pathUnzipped, filter, os.cpus().length / 2);
     } catch (err) {
         console.error(err);
     }

@@ -18,8 +18,6 @@ const { parentPort } = require("worker_threads");
 const PNG = require("pngjs").PNG;
 const { imageFilter } = require("./filterer");
 
-
-
 /**
  * Description: Read in png file by given pathIn,
  * apply filter specified and write to given pathOut
@@ -28,7 +26,7 @@ const { imageFilter } = require("./filterer");
  * @param {string} pathOut
  * @param {string} filter
  * @return {promise}
-*/
+ */
 
 const filterImage = async (pathIn, pathOut, filter) => {
     await pipeline(
@@ -52,11 +50,13 @@ const filterImage = async (pathIn, pathOut, filter) => {
     );
 };
 
-parentPort.on("message", (array=[jobs, pathUnzipped, pathProcessed, filter]) => {
-    array[0].forEach((image) => {
-        let pathIn = path.join(array[1], image);
-        let pathOut = path.join(array[2], image);
-        filterImage(pathIn, pathOut, array[3]);
+parentPort.on("message", async (filterParameters) => {
+    const filterPromises = filterParameters[0].map(async (image) => {
+        let pathIn = path.join(filterParameters[1], image);
+        let pathOut = path.join(filterParameters[2], image);
+        await filterImage(pathIn, pathOut, filterParameters[3]);
     });
+
+    await Promise.all(filterPromises);
     parentPort.postMessage("done");
 });

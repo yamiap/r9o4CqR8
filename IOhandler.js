@@ -12,13 +12,10 @@
 "use strict";
 
 const fs = require("fs/promises");
-const { createReadStream, createWriteStream } = require("fs");
+const { createWriteStream } = require("fs");
 const path = require("path");
 const { pipeline } = require("stream/promises");
 const { Worker } = require("worker_threads");
-
-const { imageFilter } = require("./filterer");
-const PNG = require("pngjs").PNG;
 const readline = require("readline-sync");
 const yauzl = require("yauzl-promise");
 
@@ -29,19 +26,20 @@ const yauzl = require("yauzl-promise");
  */
 
 const filterPrompt = async () => {
-    console.log("Available filters: \ngrayscale\nsepia\n");
+    console.log("\nAvailable filters: \ngrayscale\nsepia\nblue filter\n");
     let filter;
     while (
         filter != "grayscale" &&
         filter != "greyscale" &&
-        filter != "sepia"
+        filter != "sepia" &&
+        filter != "blue filter"
     ) {
         filter = readline.question(
             "Enter the filter you would like to apply: "
         );
     }
     if (filter == "greyscale") filter = "grayscale";
-    console.log(`You chose the ${filter} filter`);
+    console.log(`\nYou chose the ${filter} filter`);
     return filter;
 };
 
@@ -54,7 +52,6 @@ const filterPrompt = async () => {
  */
 
 const unzip = async (pathIn, pathOut) => {
-    // do I need this (outer) try-catch pair?
     await fs.mkdir(pathOut, { recursive: true });
     const zip = await yauzl.open(pathIn);
     try {
@@ -70,9 +67,6 @@ const unzip = async (pathIn, pathOut) => {
                 await pipeline(readStream, writeStream);
             }
         }
-        // do I need this catch block?
-        // } catch (err) {
-        //     console.error(err);
     } finally {
         await zip.close();
         console.log("Extraction operation complete");
@@ -80,14 +74,14 @@ const unzip = async (pathIn, pathOut) => {
 };
 
 /**
- * Description: read all the png files from given directory and return Promise containing array of each png file path
+ * Description: read all the png files from given directory,
+ * return Promise containing array of each png file path
  *
  * @param {string} dir
  * @return {promise}
  */
 
 const readDir = async (dir) => {
-    // do I need a try-catch pair?
     const files = await fs.readdir(dir);
     const pngFiles = files.filter(
         (file) => path.extname(file).toLowerCase() == ".png"
@@ -97,75 +91,58 @@ const readDir = async (dir) => {
 };
 
 /**
- * Description: Loop through array of png file paths,
- * call filterImage for each image
+ * Description: read all the png files from given directory,
+ * return Promise containing array of each png file path
  *
- * @param {array} images
- * @param {string} pathProcessed
- * @param {string} filter
- * @return {promise}
+ * @param {array} array
+ * @return {Number}
  */
 
-const processImages = async (images, pathUnzipped, pathProcessed, filter) => {
-    images.forEach((image) => {
-        let pathIn = path.join(pathUnzipped, image);
-        let pathOut = path.join(pathProcessed, image);
-        filterImage(pathIn, pathOut, filter);
-    });
-    // console.log("All files processed"));
-};
-
-/**
- * Description: Read in png file by given pathIn,
- * apply filter specified and write to given pathOut
- *
- * @param {string} pathIn
- * @param {string} pathOut
- * @param {string} filter
- * @return {promise}
- */
-
-const filterImage = async (pathIn, pathOut, filter) => {
-    await pipeline(
-        createReadStream(pathIn),
-        new PNG({ filterType: 4 }).on("parsed", function () {
-            for (var y = 0; y < this.height; y++) {
-                for (var x = 0; x < this.width; x++) {
-                    var idx = (this.width * y + x) << 2;
-
-                    [this.data[idx], this.data[idx + 1], this.data[idx + 2]] =
-                        imageFilter(
-                            this.data[idx],
-                            this.data[idx + 1],
-                            this.data[idx + 2],
-                            filter
-                        );
-                }
-            }
-            pipeline(this.pack(), createWriteStream(pathOut));
-        })
-    );
-};
-
-const chunkify = async (array, n) => {
+const chunkify = async (array, concurrentWorkers) => {
     let chunks = [];
-    for (let i = n; i > 0; i--) {
+    for (let i = concurrentWorkers; i > 0; i--) {
         chunks.push(array.splice(0, Math.ceil(array.length / i)));
     }
     return chunks;
 };
 
+/**
+ * Description: Call chunkify and pass data to workers for processing
+ *
+ * @param {array} images
+ * @param {string} pathUnzipped
+ * @param {string} filter
+ * @param {Number} concurrentWorkers
+ * @return {promise}
+ */
 
-// rename this
-const run = async (jobs, pathUnzipped, pathProcessed, filter, concurrentWorkers) => {
-    const chunks = await chunkify(jobs, concurrentWorkers);
+const processImages = async (
+    images,
+    pathUnzipped,
+    filter,
+    concurrentWorkers
+) => {
+    let pathProcessed;
 
-    chunks.forEach((data, i) => {
+    if (images.length < concurrentWorkers) {
+        concurrentWorkers = images.length;
+    }
+
+    if (filter == "grayscale") {
+        pathProcessed = path.join(__dirname, "grayscaled");
+    } else if (filter == "sepia") {
+        pathProcessed = path.join(__dirname, "sepiafied");
+    } else if (filter == "blue filter") {
+        pathProcessed = path.join(__dirname, "blue_filtered");
+    }
+
+    await fs.mkdir(pathProcessed, { recursive: true });
+    const chunks = await chunkify(images, concurrentWorkers);
+
+    chunks.forEach((data) => {
+        let filterParameters = [data, pathUnzipped, pathProcessed, filter];
         const worker = new Worker("./worker.js");
-        worker.postMessage([data, pathUnzipped, pathProcessed, filter]);
-        worker.on("message", () => {
-            console.log(`Worker ${i} completed`);
-        });
+        worker.postMessage(filterParameters);
     });
 };
 
@@ -174,5 +151,4 @@ module.exports = {
     unzip,
     readDir,
     processImages,
-    run,
 };

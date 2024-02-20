@@ -50,13 +50,12 @@ const filterImage = (pathIn, pathOut, filter) => {
     );
 };
 
-parentPort.on("message", (filterParameters) => {
-    filterParameters[0].forEach((image) => {
+parentPort.on("message", async (filterParameters) => {
+    const filterPromises = filterParameters[0].map(async (image) => {
         let pathIn = path.join(filterParameters[1], image);
         let pathOut = path.join(filterParameters[2], image);
-        filterImage(pathIn, pathOut, filterParameters[3]);
+        await filterImage(pathIn, pathOut, filterParameters[3]);
     });
 
-    // await Promise.all(filterPromises);
-    // parentPort.postMessage("done");
+    await Promise.all(filterPromises);
 });

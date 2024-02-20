@@ -145,7 +145,6 @@ const processImages = async (
         worker.postMessage(filterParameters);
         worker.on("message", () => {
             worker.terminate();
-            console.log(`Worker ${i} message received`);
         });
     });
 };

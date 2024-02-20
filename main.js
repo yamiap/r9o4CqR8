@@ -22,8 +22,7 @@ const main = async () => {
         const filter = await filterPrompt();
         await unzip(zipFilePath, pathUnzipped);
         const images = await readDir(pathUnzipped);
-        // await processImages(images, pathUnzipped, filter, os.cpus().length / 2);
-        await processImages(images, pathUnzipped, filter, 2);
+        await processImages(images, pathUnzipped, filter, os.cpus().length / 2);
     } catch (err) {
         console.error(err);
     }

@@ -21,8 +21,11 @@ const pathUnzipped = path.join(__dirname, "unzipped");
 
 const main = async () => {
     const filter = await question();
-    console.log(filter);
-    const pathProcessed = path.join(__dirname, `${filter}`);
+    let pathProcessed = path.join(__dirname, "unfiltered");
+
+    if (filter == "grayscale") pathProcessed = "grayscaled";
+    if (filter == "sepia") pathProcessed = "sepia_filtered";
+
     try {
         // do I need to assign these to variables?
         await unzip(zipFilePath, pathUnzipped);

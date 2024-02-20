@@ -85,16 +85,21 @@ const readDir = async (dir) => {
  */
 
 const filterImage = async (pathIn, pathOut, filter) => {
+    let pathProcessed = path.join(__dirname, "unfiltered");
+
+    if (filter == "grayscale") pathProcessed = "grayscaled";
+    if (filter == "sepia") pathProcessed = "sepia_filtered";
+
     // do I need this try-catch pair?
     try {
-        await fs.mkdir(`${filter}`, { recursive: true });
+        await fs.mkdir(pathProcessed, { recursive: true });
         await pipeline(
             createReadStream(pathIn),
             new PNG({ filterType: 4 }).on("parsed", function () {
                 for (var y = 0; y < this.height; y++) {
                     for (var x = 0; x < this.width; x++) {
                         var idx = (this.width * y + x) << 2;
-                        
+
                         if (filter == "grayscale") {
                             [
                                 this.data[idx],
@@ -109,7 +114,7 @@ const filterImage = async (pathIn, pathOut, filter) => {
                             [
                                 this.data[idx],
                                 this.data[idx + 1],
-                                this.data[idx + 2]
+                                this.data[idx + 2],
                             ] = sepiaFilter(
                                 this.data[idx],
                                 this.data[idx + 1],

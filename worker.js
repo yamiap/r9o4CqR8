@@ -58,4 +58,5 @@ parentPort.on("message", async (filterParameters) => {
     });
 
     await Promise.all(filterPromises);
+    // parentPort.postMessage("done");
 });

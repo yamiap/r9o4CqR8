@@ -95,7 +95,8 @@ const readDir = async (dir) => {
  * return Promise containing array of each png file path
  *
  * @param {array} array
- * @return {Number}
+ * @param {Number} concurrentWorkers
+ * @return {promise}
  */
 
 const chunkify = async (array, concurrentWorkers) => {
@@ -139,7 +140,7 @@ const processImages = async (
     await fs.mkdir(pathProcessed, { recursive: true });
     const chunks = await chunkify(images, concurrentWorkers);
 
-    chunks.forEach((data, i) => {
+    chunks.forEach((data) => {
         let filterParameters = [data, pathUnzipped, pathProcessed, filter];
         const worker = new Worker("./worker.js");
         worker.postMessage(filterParameters);

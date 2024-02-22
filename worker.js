@@ -12,11 +12,11 @@
 "use strict";
 
 const { createReadStream, createWriteStream } = require("fs"),
-    path = require("path"),
-    { pipeline } = require("stream/promises"),
-    { parentPort } = require("worker_threads"),
-    PNG = require("pngjs").PNG,
-    { imageFilter } = require("./filterer");
+  path = require("path"),
+  { pipeline } = require("stream/promises"),
+  { parentPort } = require("worker_threads"),
+  PNG = require("pngjs").PNG,
+  { imageFilter } = require("./filterer");
 
 /**
  * Description: Read in png file by given pathIn,
@@ -29,33 +29,33 @@ const { createReadStream, createWriteStream } = require("fs"),
  */
 
 const filterImage = (pathIn, pathOut, filter) => {
-    pipeline(
-        createReadStream(pathIn),
-        new PNG({ filterType: 4 }).on("parsed", function () {
-            for (var y = 0; y < this.height; y++) {
-                for (var x = 0; x < this.width; x++) {
-                    var idx = (this.width * y + x) << 2;
+  pipeline(
+    createReadStream(pathIn),
+    new PNG({ filterType: 4 }).on("parsed", function () {
+      for (var y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+          var idx = (this.width * y + x) << 2;
 
-                    [this.data[idx], this.data[idx + 1], this.data[idx + 2]] =
-                        imageFilter(
-                            this.data[idx],
-                            this.data[idx + 1],
-                            this.data[idx + 2],
-                            filter
-                        );
-                }
-            }
-            pipeline(this.pack(), createWriteStream(pathOut));
-        })
-    );
+          [this.data[idx], this.data[idx + 1], this.data[idx + 2]] =
+            imageFilter(
+              this.data[idx],
+              this.data[idx + 1],
+              this.data[idx + 2],
+              filter
+            );
+        }
+      }
+      pipeline(this.pack(), createWriteStream(pathOut));
+    })
+  );
 };
 
 parentPort.on("message", async (filterParameters) => {
-    const filterPromises = filterParameters[0].map(async (image) => {
-        let pathIn = path.join(filterParameters[1], image);
-        let pathOut = path.join(filterParameters[2], image);
-        await filterImage(pathIn, pathOut, filterParameters[3]);
-    });
+  const filterPromises = filterParameters[0].map(async (image) => {
+    let pathIn = path.join(filterParameters[1], image);
+    let pathOut = path.join(filterParameters[2], image);
+    await filterImage(pathIn, pathOut, filterParameters[3]);
+  });
 
-    await Promise.all(filterPromises);
+  await Promise.all(filterPromises);
 });

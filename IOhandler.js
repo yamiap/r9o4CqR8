@@ -12,12 +12,12 @@
 "use strict";
 
 const fs = require("fs/promises"),
-    { createWriteStream } = require("fs"),
-    path = require("path"),
-    { pipeline } = require("stream/promises"),
-    { Worker } = require("worker_threads"),
-    readline = require("readline-sync"),
-    yauzl = require("yauzl-promise");
+  { createWriteStream } = require("fs"),
+  path = require("path"),
+  { pipeline } = require("stream/promises"),
+  { Worker } = require("worker_threads"),
+  readline = require("readline-sync"),
+  yauzl = require("yauzl-promise");
 
 /**
  * Description: prompt the user to select a filter
@@ -26,21 +26,19 @@ const fs = require("fs/promises"),
  */
 
 const filterPrompt = async () => {
-    console.log("\nAvailable filters: \ngrayscale\nsepia\nblue filter\n");
-    let filter;
-    while (
-        filter != "grayscale" &&
-        filter != "greyscale" &&
-        filter != "sepia" &&
-        filter != "blue filter"
-    ) {
-        filter = readline.question(
-            "Enter the filter you would like to apply: "
-        );
-    }
-    if (filter == "greyscale") filter = "grayscale";
-    console.log(`\nYou chose the ${filter} filter`);
-    return filter;
+  console.log("\nAvailable filters: \ngrayscale\nsepia\nblue filter\n");
+  let filter;
+  while (
+    filter != "grayscale" &&
+    filter != "greyscale" &&
+    filter != "sepia" &&
+    filter != "blue filter"
+  ) {
+    filter = readline.question("Enter the filter you would like to apply: ");
+  }
+  if (filter == "greyscale") filter = "grayscale";
+  console.log(`\nYou chose the ${filter} filter`);
+  return filter;
 };
 
 /**
@@ -52,25 +50,22 @@ const filterPrompt = async () => {
  */
 
 const unzip = async (pathIn, pathOut) => {
-    await fs.mkdir(pathOut, { recursive: true });
-    const zip = await yauzl.open(pathIn);
-    try {
-        for await (const entry of zip) {
-            if (
-                !entry.filename.includes("/") &&
-                !entry.filename.includes("\\")
-            ) {
-                const readStream = await entry.openReadStream();
-                const writeStream = createWriteStream(
-                    path.join(pathOut, entry.filename)
-                );
-                await pipeline(readStream, writeStream);
-            }
-        }
-    } finally {
-        await zip.close();
-        console.log("Extraction operation complete");
+  await fs.mkdir(pathOut, { recursive: true });
+  const zip = await yauzl.open(pathIn);
+  try {
+    for await (const entry of zip) {
+      if (!entry.filename.includes("/") && !entry.filename.includes("\\")) {
+        const readStream = await entry.openReadStream();
+        const writeStream = createWriteStream(
+          path.join(pathOut, entry.filename)
+        );
+        await pipeline(readStream, writeStream);
+      }
     }
+  } finally {
+    await zip.close();
+    console.log("Extraction operation complete");
+  }
 };
 
 /**
@@ -82,12 +77,12 @@ const unzip = async (pathIn, pathOut) => {
  */
 
 const readDir = async (dir) => {
-    const files = await fs.readdir(dir);
-    const pngFiles = files.filter(
-        (file) => path.extname(file).toLowerCase() == ".png"
-    );
-    console.log("Directory reading complete");
-    return pngFiles;
+  const files = await fs.readdir(dir);
+  const pngFiles = files.filter(
+    (file) => path.extname(file).toLowerCase() == ".png"
+  );
+  console.log("Directory reading complete");
+  return pngFiles;
 };
 
 /**
@@ -100,11 +95,11 @@ const readDir = async (dir) => {
  */
 
 const chunkify = async (array, concurrentWorkers) => {
-    let chunks = [];
-    for (let i = concurrentWorkers; i > 0; i--) {
-        chunks.push(array.splice(0, Math.ceil(array.length / i)));
-    }
-    return chunks;
+  let chunks = [];
+  for (let i = concurrentWorkers; i > 0; i--) {
+    chunks.push(array.splice(0, Math.ceil(array.length / i)));
+  }
+  return chunks;
 };
 
 /**
@@ -118,41 +113,41 @@ const chunkify = async (array, concurrentWorkers) => {
  */
 
 const processImages = async (
-    images,
-    pathUnzipped,
-    filter,
-    concurrentWorkers
+  images,
+  pathUnzipped,
+  filter,
+  concurrentWorkers
 ) => {
-    let pathProcessed;
+  let pathProcessed;
 
-    if (images.length < concurrentWorkers) {
-        concurrentWorkers = images.length;
-    }
+  if (images.length < concurrentWorkers) {
+    concurrentWorkers = images.length;
+  }
 
-    if (filter == "grayscale") {
-        pathProcessed = path.join(__dirname, "grayscaled");
-    } else if (filter == "sepia") {
-        pathProcessed = path.join(__dirname, "sepiafied");
-    } else if (filter == "blue filter") {
-        pathProcessed = path.join(__dirname, "blue_filtered");
-    }
+  if (filter == "grayscale") {
+    pathProcessed = path.join(__dirname, "grayscaled");
+  } else if (filter == "sepia") {
+    pathProcessed = path.join(__dirname, "sepiafied");
+  } else if (filter == "blue filter") {
+    pathProcessed = path.join(__dirname, "blue_filtered");
+  }
 
-    await fs.mkdir(pathProcessed, { recursive: true });
-    const chunks = await chunkify(images, concurrentWorkers);
+  await fs.mkdir(pathProcessed, { recursive: true });
+  const chunks = await chunkify(images, concurrentWorkers);
 
-    chunks.forEach((data) => {
-        let filterParameters = [data, pathUnzipped, pathProcessed, filter];
-        const worker = new Worker("./worker.js");
-        worker.postMessage(filterParameters);
-        worker.on("message", () => {
-            worker.terminate();
-        });
+  chunks.forEach((data) => {
+    let filterParameters = [data, pathUnzipped, pathProcessed, filter];
+    const worker = new Worker("./worker.js");
+    worker.postMessage(filterParameters);
+    worker.on("message", () => {
+      worker.terminate();
     });
+  });
 };
 
 module.exports = {
-    filterPrompt,
-    unzip,
-    readDir,
-    processImages,
+  filterPrompt,
+  unzip,
+  readDir,
+  processImages,
 };

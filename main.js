@@ -12,20 +12,20 @@
 "use strict";
 
 const os = require("os"),
-    path = require("path"),
-    { filterPrompt, unzip, readDir, processImages } = require("./IOhandler"),
-    zipFilePath = path.join(__dirname, "myfile.zip"),
-    pathUnzipped = path.join(__dirname, "unzipped");
+  path = require("path"),
+  { filterPrompt, unzip, readDir, processImages } = require("./IOhandler"),
+  zipFilePath = path.join(__dirname, "myfile.zip"),
+  pathUnzipped = path.join(__dirname, "unzipped");
 
 const main = async () => {
-    try {
-        const filter = await filterPrompt();
-        await unzip(zipFilePath, pathUnzipped);
-        const images = await readDir(pathUnzipped);
-        await processImages(images, pathUnzipped, filter, os.cpus().length / 2);
-    } catch (err) {
-        console.error(err);
-    }
+  try {
+    const filter = await filterPrompt();
+    await unzip(zipFilePath, pathUnzipped);
+    const images = await readDir(pathUnzipped);
+    await processImages(images, pathUnzipped, filter, os.cpus().length / 2);
+  } catch (err) {
+    console.error(err);
+  }
 };
 
 main();
